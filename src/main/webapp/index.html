@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <!-- import JavaScript -->
+    <script src="js/vue.js"></script>
+    <script src="js/axios.js"></script>
+    <script src="js/qs.js"></script>
+    <script src="js/util.js"></script>
+    <script src="js/element-index.js"></script>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="css/main.css">
+    <title>爱读书</title>
+</head>
+<body>
+<div id="app">
+    <el-scrollbar class="scrollbar" :height="myScreenHeight">
+        <div id="page">
+            <el-container id="mainContainer">
+                <!--网站头部-->
+                <el-header height="120px">
+                    <div>
+                        <div class="main-page">
+                            <div class="user"><span style="color: #797979">读书好，好读书，读好书！</span></div>
+                        </div>
+                        <div class="user" v-if="!isLogin">
+                            <el-link href="#" :underline="false" style="margin-bottom: 2px; color: #797979"
+                                     @click="handleLogin">登录
+                            </el-link>
+                        </div>
+                        <div class="user" v-else>
+                            <span>欢迎您，</span>
+                            <el-link href="" :underline="false" style="margin-bottom: 4px; color: #797979">
+                                {{userInfo.name}}
+                            </el-link>
+                            |
+                            <el-link :underline="false" style="margin-bottom: 4px; color: #797979" @click="logout">退出
+                            </el-link>
+                        </div>
+                    </div>
+                    <br>
+                    <hr>
+                    <div>
+                        <div class="title-box">
+                            <!--标题-->
+                            <div class="title">
+                                <span class="el-icon-reading" style="font-size: xx-large; font-weight: bold">爱读书</span>
+                            </div>
+                            <!--搜索框-->
+                            <el-input class="input-with-search" prefix-icon="el-icon-search"
+                                      v-model="searchParams.keyword"
+                                      @keyup.enter.native="doSearch(searchParams)">
+                            </el-input>
+                            <!--收藏关注按钮组-->
+                            <el-button-group class="collection-and-attention">
+                                <el-button class="el-icon-collection-tag" @click="handleViewCollection"> 收藏
+                                </el-button>
+                                <el-button class="el-icon-star-off" @click="handleViewAttention"> 关注</el-button>
+                                <el-button class="el-icon-message" @click="handleViewMessage"> 消息</el-button>
+                            </el-button-group>
+                        </div>
+                    </div>
+                </el-header>
+
+                <el-tabs v-model="activeName" @tab-click="handleChooseTab">
+                    <el-tab-pane label="首页" name="main">
+                        <!--网页主体-->
+                        <div>
+                            <div>
+                                <div>
+                                    <div style="margin-top: 25px">
+                                        <el-carousel trigger="click" :interval="4000" type="card" height="300px">
+                                            <el-carousel-item v-for="item in images" :key="item.name">
+                                                <el-image :src="'images/'+item.url" style="height:100%;width:100%;">
+                                                    <template #error>
+                                                        <div class="image-slot">
+                                                            <i class="el-icon-picture-outline"></i>
+                                                        </div>
+                                                    </template>
+                                                </el-image>
+                                            </el-carousel-item>
+                                        </el-carousel>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </el-tab-pane>
+
+                    <el-tab-pane label="搜索" name="search">
+                        <label>专业: </label>
+                        <el-select v-model="searchParams.majors"
+                                   multiple
+                                   collapse-tags
+                                   style="margin-left: 20px;"
+                                   no-data-text="暂无可选项"
+                                   placeholder="选择你想查找的专业"
+                                   @change="getCourseSelection(searchParams.majors)">
+                            <el-option v-for="item in majors" :key="item.id" :label="item.name"
+                                       :value="item.id"></el-option>
+                        </el-select>
+                        <label>课程: </label>
+                        <el-select v-model="searchParams.courses"
+                                   multiple
+                                   collapse-tags
+                                   style="margin-left: 20px;"
+                                   no-data-text="暂无可选项"
+                                   placeholder="选择你想查找的课程">
+                            <el-option v-for="item in courses" :key="item.id" :label="item.name"
+                                       :value="item.id"></el-option>
+                        </el-select>
+                        <label>关键字: </label>
+                        <el-input v-model="searchParams.keyword" style="width: 250px" placeholder="可以输入关键字查询哦~">
+
+                        </el-input>
+                        <el-button type="primary" class="el-icon-search" @click="doSearch(searchParams)">搜索</el-button>
+
+                        <br><br>
+                        <!--搜索结果用表格展示-->
+                        <!--v-show="searchResult.length>0"-->
+
+                        <el-radio-group v-model="resultType" size="medium">
+                            <el-radio-button :label="0">参考书</el-radio-button>
+                            <el-radio-button :label="2">课程</el-radio-button>
+                            <!--<el-radio-button :label="1">专业</el-radio-button>-->
+                        </el-radio-group>
+
+                        <el-table v-if="resultType===0" :data="searchResult_book" tooltip-effect="dark"
+                                  empty-text="抱歉，没有查到你想要的结果哦~" stripe>
+                            <el-table-column type="expand">
+                                <template #default="props">
+                                    <el-form label-position="left" inline>
+                                        <el-form-item>
+                                            <el-rate v-model="props.row.avgLevel" disabled show-score
+                                                     text-color="#ff9900"></el-rate>
+                                            <p class="introduction">浏览量(/次): {{props.row.pageView}}</p>
+                                            <p class="introduction">关注数(/人): {{props.row.attention}}</p>
+                                            <p class="introduction">详情: {{props.row.introduction}}</p>
+                                        </el-form-item>
+                                    </el-form>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="picture" label="图片">
+                                <template #default="scope">
+                                    <el-image class="book-image" :src="'images/'+scope.row.picture">
+                                        <template #error>
+                                            <div class="image-slot">
+                                                <i class="el-icon-picture-outline"></i>
+                                            </div>
+                                        </template>
+                                    </el-image>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="name" label="书名" sortable></el-table-column>
+                            <el-table-column prop="avgLevel" label="评分" sortable>
+                                <template #default="props">
+                                    <el-rate v-model="props.row.avgLevel" disabled show-score
+                                             text-color="#ff9900"></el-rate>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" fixed="right" width="160px">
+                                <template #default="scope">
+                                    <el-button size="mini" type="primary" icon="el-icon-view"
+                                               @click="handleGetView(scope.row.id)">查看详情
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <el-table v-else-if="resultType===1" :data="searchResult_major" tooltip-effect="dark"
+                                  empty-text="抱歉，没有查到你想要的结果哦~" stripe>
+                            <el-table-column prop="name" label="名称" sortable></el-table-column>
+                        </el-table>
+
+                        <el-table v-else-if="resultType===2" :data="searchResult_course" tooltip-effect="dark"
+                                  empty-text="抱歉，没有查到你想要的结果哦~" stripe>
+                            <el-table-column prop="name" label="名称" sortable></el-table-column>
+                            <el-table-column label="操作" fixed="right" width="160px">
+                                <template #default="scope">
+                                    <el-button v-if="!attentions.some(item=>{return item.id===scope.row.id})" size="mini"
+                                               type="primary" icon="el-icon-star-off"
+                                               @click="handleAddAttention(scope.row.id)">关注
+                                    </el-button>
+                                    <el-button v-else size="mini" type="danger"
+                                               icon="el-icon-close" @click="handleRemoveAttention(scope.row.id)">取消关注
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                    </el-tab-pane>
+                </el-tabs>
+
+                <!--个性化推荐-->
+                <div class="view" v-if="isLogin">
+                    <span class="titles">猜你喜欢
+                        <el-button type="text" size="mini"
+                                   @click="handleGetMore(recommendBooks)">查看更多></el-button>
+                    </span>
+                    <div class="content">
+                        <ul v-if="recommendBooks.length === 0">
+                            <li v-for="idx in 6" class="book" :key="idx">
+                                <div class="book-item">
+                                    <el-skeleton-item variant="image" class="book-image" animated></el-skeleton-item>
+                                </div>
+                            </li>
+                        </ul>
+                        <ul style="padding: 0;margin: 0">
+                            <li v-for="book in recommendBooks.slice(0,6)" :key="book.id" class="book">
+                                <div class="book-item">
+                                    <el-image class="book-image" :src="'images/'+book.picture"
+                                              @click="handleGetView(book.id)">
+                                        <template #error>
+                                            <div class="image-slot">
+                                                <i class="el-icon-picture-outline"></i>
+                                            </div>
+                                        </template>
+                                    </el-image>
+                                    <p class="book-name" @click="handleGetView(book.id)">{{book.name}}</p>
+                                    <p class="introduction">{{book.introduction}}</p>
+                                    <el-button class="btn-collect" icon="el-icon-view" @click="handleGetView(book.id)">
+                                        查看详情
+                                    </el-button>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!--浏览量推荐-->
+                <div class="view">
+                    <span class="titles">浏览最多 <el-button type="text" size="mini"
+                                                         @click="handleGetMore(pageViewBookList)">查看更多></el-button></span>
+                    <div class="content">
+                        <ul v-if="pageViewBookList.length === 0">
+                            <li v-for="idx in 6" class="book" :key="idx">
+                                <div class="book-item">
+                                    <el-skeleton-item variant="image" class="book-image" animated></el-skeleton-item>
+                                </div>
+                            </li>
+                        </ul>
+                        <ul style="padding: 0;margin: 0">
+                            <li v-for="book in pageViewBookList.slice(0,6)" :key="book.id" class="book">
+                                <div class="book-item">
+                                    <el-image class="book-image" :src="'images/'+book.picture"
+                                              @click="handleGetView(book.id)">
+                                        <template #error>
+                                            <div class="image-slot">
+                                                <i class="el-icon-picture-outline"></i>
+                                            </div>
+                                        </template>
+                                    </el-image>
+                                    <p class="book-name" @click="handleGetView(book.id)">{{book.name}}</p>
+                                    <p class="introduction">{{book.introduction}}</p>
+                                    <el-button class="btn-collect" icon="el-icon-view" @click="handleGetView(book.id)">
+                                        查看详情
+                                    </el-button>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!--关注数推荐-->
+                <div class="view">
+                    <span class="titles">关注最多 <el-button type="text" size="mini"
+                                                         @click="handleGetMore(attentionBookList)">查看更多></el-button></span>
+                    <div class="content">
+                        <ul v-if="attentionBookList.length === 0">
+                            <li v-for="idx in 6" class="book" :key="idx">
+                                <div class="book-item">
+                                    <el-skeleton-item variant="image" class="book-image" animated></el-skeleton-item>
+                                </div>
+                            </li>
+                        </ul>
+                        <ul style="padding: 0;margin: 0">
+                            <li v-for="book in attentionBookList.slice(0,6)" :key="book.id" class="book">
+                                <div class="book-item">
+                                    <el-image class="book-image" :src="'images/'+book.picture"
+                                              @click="handleGetView(book.id)">
+                                        <template #error>
+                                            <div class="image-slot">
+                                                <i class="el-icon-picture-outline"></i>
+                                            </div>
+                                        </template>
+                                    </el-image>
+                                    <p class="book-name" @click="handleGetView(book.id)">{{book.name}}</p>
+                                    <p class="introduction">{{book.introduction}}</p>
+                                    <el-button class="btn-collect" icon="el-icon-view" @click="handleGetView(book.id)">
+                                        查看详情
+                                    </el-button>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!--评分推荐-->
+                <div class="view">
+                    <span class="titles">评分最高 <el-button type="text" size="mini"
+                                                         @click="handleGetMore(avgLevelBookList)">查看更多></el-button></span>
+                    <div class="content">
+                        <ul v-if="avgLevelBookList.length === 0">
+                            <li v-for="idx in 6" class="book" :key="idx">
+                                <div class="book-item">
+                                    <el-skeleton-item variant="image" class="book-image" animated></el-skeleton-item>
+                                </div>
+                            </li>
+                        </ul>
+                        <ul style="padding: 0;margin: 0">
+                            <li v-for="book in avgLevelBookList.slice(0,6)" :key="book.id" class="book">
+                                <div class="book-item">
+                                    <el-image class="book-image" :src="'images/'+book.picture"
+                                              @click="handleGetView(book.id)">
+                                        <template #error>
+                                            <div class="image-slot">
+                                                <i class="el-icon-picture-outline"></i>
+                                            </div>
+                                        </template>
+                                    </el-image>
+                                    <p class="book-name" @click="handleGetView(book.id)">{{book.name}}</p>
+                                    <p class="introduction">{{book.introduction}}</p>
+                                    <el-button class="btn-collect" icon="el-icon-view"
+                                               @click="handleGetView(book.id)">
+                                        查看详情
+                                    </el-button>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <hr>
+
+                <el-footer class="footer">
+                    <div class="text-center">
+                        Copyright © 爱读书 All Rights Reserved.
+                    </div>
+                </el-footer>
+            </el-container>
+        </div>
+    </el-scrollbar>
+
+    <!--弹窗-->
+
+    <!--登录弹窗-->
+    <el-dialog title="登录" width="400px" v-model="loginDialogVisible" :before-close="handleCloseLoginDialog">
+        <el-form ref="loginRuleForm" :model="loginRuleForm" :rules="loginRules" label-width="100px"
+                 status-icon>
+            <el-form-item label="用户名" prop="username">
+                <el-input style="width: 80%" v-model="loginRuleForm.username" required></el-input>
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+                <el-input style="width: 80%" v-model="loginRuleForm.password" show-password required></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="submitLoginForm('loginRuleForm')">登录</el-button>
+                <el-button type="info" @click="handleCloseLoginDialog">取消</el-button>
+                <el-button type="text" @click="">忘记密码</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+
+    <!--收藏弹窗-->
+    <el-dialog title="我的收藏" width="700px" v-model="collectionDialogVisible" :before-close="handleCloseCollectionDialog">
+        <el-scrollbar height="400px">
+            <el-table :data="collections" tooltip-effect="dark" empty-text="你还没有收藏参考书哦~" stripe>
+                <el-table-column type="expand">
+                    <template #default="props">
+                        <el-form label-position="left" inline>
+                            <el-form-item>
+                                <el-image class="book-image" :src="'images/'+props.row.picture">
+                                    <template #error>
+                                        <div class="image-slot">
+                                            <i class="el-icon-picture-outline"></i>
+                                        </div>
+                                    </template>
+                                </el-image>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-rate v-model="props.row.avgLevel" disabled show-score
+                                         text-color="#ff9900"></el-rate>
+                                <p class="introduction">浏览量(/次): {{props.row.pageView}}</p>
+                                <p class="introduction">关注数(/人): {{props.row.attention}}</p>
+                                <p class="introduction">简介: {{props.row.introduction}}</p>
+                            </el-form-item>
+                        </el-form>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="name" label="书名"></el-table-column>
+                <!--<el-table-column prop="introduction" label="详情"></el-table-column>-->
+                <el-table-column label="操作" fixed="right" width="360px">
+                    <template #default="scope">
+                        <el-button size="mini" type="danger" icon="el-icon-close"
+                                   @click="handleRemoveCollection(scope.row.id)">取消收藏
+                        </el-button>
+                        <el-button size="mini" type="primary" icon="el-icon-plus"
+                                   @click="handleSetNotice(scope.row.name)">
+                            设置提醒
+                        </el-button>
+                        <el-button size="mini" type="success" icon="el-icon-chat-dot-round"
+                                   @click="handleEvaluate(scope.row)">发表评论
+                        </el-button>
+                        <!--<el-button v-else size="mini" type="info" icon="el-icon-chat-dot-round" disabled>
+                            已评论
+                        </el-button>-->
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-scrollbar>
+        <!--评论弹框-->
+        <el-dialog title="发表评论" width="400px" v-model="evaluationDialogVisible"
+                   :before-close="handleCloseEvaluationDialog">
+            <div class="book-view">
+                <el-image class="book-view-image" :src="'images/'+evaluation.picture">
+                    <template #error>
+                        <div class="image-slot">
+                            <i class="el-icon-picture-outline"></i>
+                        </div>
+                    </template>
+                </el-image>
+                <p class="book-view-name">{{evaluation.name}}</p>
+                <p class="introduction">{{evaluation.introduction}}</p>
+                <el-rate v-model="evaluation.level" show-score text-color="#ff9900"></el-rate>
+                <div style="height: 80px;">
+                    <el-scrollbar>
+                        <el-input type="textarea" placeholder="请在这里撰写你的评论~" v-model="evaluation.comment"
+                                  style="width: 160px;" autosize></el-input>
+                    </el-scrollbar>
+                </div>
+                <div class="dialog-footer">
+                    <el-button size="small" type="primary" @click="handleUploadEvaluation">发表</el-button>
+                    <el-button size="small" type="info" @click="handleCloseEvaluationDialog">取消</el-button>
+                </div>
+            </div>
+        </el-dialog>
+    </el-dialog>
+
+    <!--关注弹窗-->
+    <el-dialog title="我的关注" width="400px" v-model="attentionDialogVisible" :before-close="handleCloseAttentionDialog">
+        <el-scrollbar height="400px">
+            <el-table :data="attentions" tooltip-effect="dark" empty-text="你还没有关注课程哦~" stripe>
+                <el-table-column prop="name" label="课程"></el-table-column>
+                <el-table-column label="操作" fixed="right" width="160px">
+                    <template #default="scope">
+                        <el-button size="mini" type="danger" icon="el-icon-close"
+                                   @click="handleRemoveAttention(scope.row.id)">取消关注
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-scrollbar>
+    </el-dialog>
+
+    <!--消息弹窗-->
+    <el-dialog title="消息中心" width="500px" v-model="messageDialogVisible" :before-close="handleCloseMessageDialog">
+        <div style="text-align: center">
+            <el-radio-group v-model="isRead" size="small" @change="viewMessage">
+                <el-radio-button label="0">未读</el-radio-button>
+                <el-radio-button label="1">已读</el-radio-button>
+                <el-radio-button label="2">全部</el-radio-button>
+            </el-radio-group>
+            <el-button size="mini" type="info" icon="el-icon-s-open" circle style="margin-left: 20px"
+                       @click="getRead(0)">
+            </el-button>
+        </div>
+
+        <el-scrollbar height="400px">
+            <el-table :data="messages" tooltip-effect="dark" empty-text="暂时没有消息~" stripe>
+                <el-table-column type="expand">
+                    <template #default="props">
+                        <p class="introduction">消息内容: {{props.row.content}}</p>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="title" label="消息标题">
+
+                </el-table-column>
+                <el-table-column label="操作" fixed="right" width="100px">
+                    <template #default="scope">
+                        <el-button size="mini" type="primary" @click="handleReadMessageDialog(scope.row.id)">查看
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-scrollbar>
+
+        <!--评论弹框-->
+        <el-dialog title="查看消息" width="450px" v-model="readMessageDialogVisible"
+                   :before-close="handleCloseReadMessageDialog">
+            <p class="book-view-name">{{messageInfo[0].title}}</p>
+            <p class="introduction">内容: {{messageInfo[0].content}}</p>
+        </el-dialog>
+    </el-dialog>
+
+    <!--参考书详情弹窗-->
+    <el-dialog title="参考书详情" width="420px" v-model="bookDialogVisible" :before-close="handleCloseBookDialog">
+        <div>
+            <el-image class="book-view-image" :src="'images/'+bookInfo.picture">
+                <template #error>
+                    <div class="image-slot">
+                        <i class="el-icon-picture-outline"></i>
+                    </div>
+                </template>
+            </el-image>
+            <p class="book-view-name">{{bookInfo.name}}</p>
+            <p class="introduction">评分:
+                <el-rate v-model="bookInfo.avgLevel" disabled show-score text-color="#ff9900"></el-rate>
+            </p>
+            <p class="introduction">浏览量:{{bookInfo.pageView}}次</p>
+            <p class="introduction">关注数:{{bookInfo.attention}}人</p>
+            <p class="introduction">简介:{{bookInfo.introduction}}</p>
+            <el-button v-if="!isCollected" type="primary" icon="el-icon-collection-tag"
+                       @click="handleAddCollection(bookInfo.id)">添加收藏
+            </el-button>
+            <el-button v-else type="danger" icon="el-icon-close"
+                       @click="handleRemoveCollection(bookInfo.id)">取消收藏
+            </el-button>
+            <hr>
+            <p>评论({{evaluations.length}})</p>
+            <el-scrollbar height="200px">
+                <p v-if="evaluationForSelf.length>0">我的评论({{evaluationForSelf.length}})</p>
+                <el-table v-if="evaluationForSelf.length>0" :data="evaluationForSelf" tooltip-effect="dark"
+                          empty-text="你还没有评论过这本书哦~" stripe>
+                    <el-table-column type="expand">
+                        <template #default="props">
+                            <p class="introduction">{{props.row.comment}}</p>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="评分">
+                        <template #default="props">
+                            <el-rate v-model="props.row.level" disabled show-score text-color="#ff9900"></el-rate>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <p>所有评论({{evaluations.length}})</p>
+                <el-table :data="evaluations" tooltip-effect="dark" empty-text="该参考书暂无评论~" stripe>
+                    <el-table-column type="expand">
+                        <template #default="props">
+                            <p class="introduction">{{props.row.comment}}</p>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="studentId" label="用户名"></el-table-column>
+                    <el-table-column label="评分">
+                        <template #default="props">
+                            <el-rate v-model="props.row.level" disabled show-score text-color="#ff9900"></el-rate>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-scrollbar>
+        </div>
+    </el-dialog>
+
+    <!--查看更多弹窗-->
+    <el-dialog title="查看更多" width="700px" v-model="moreBookDialogVisible" :before-close="handleCloseGetMoreDialog">
+        <el-scrollbar height="400px">
+            <el-table :data="moreBooks" tooltip-effect="dark" empty-text="抱歉，暂无数据~" stripe>
+                <el-table-column type="expand">
+                    <template #default="props">
+                        <el-form label-position="left" inline>
+                            <el-form-item>
+                                <el-rate v-model="props.row.avgLevel" disabled show-score
+                                         text-color="#ff9900"></el-rate>
+                                <p class="introduction">浏览量(/次): {{props.row.pageView}}</p>
+                                <p class="introduction">关注数(/人):{{props.row.attention}}</p>
+                                <p class="introduction">详情:{{props.row.introduction}}</p>
+                            </el-form-item>
+                        </el-form>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="picture" label="图片">
+                    <template #default="scope">
+                        <el-image class="book-image" :src="'images/'+scope.row.picture">
+                            <template #error>
+                                <div class="image-slot">
+                                    <i class="el-icon-picture-outline"></i>
+                                </div>
+                            </template>
+                        </el-image>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="name" label="书名"></el-table-column>
+                <el-table-column label="操作" fixed="right">
+                    <template #default="scope">
+                        <el-button size="mini" type="primary" icon="el-icon-view"
+                                   @click="handleGetView(scope.row.id)">查看详情
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-scrollbar>
+    </el-dialog>
+</div>
+<script>
+    const App = {
+            data() {
+                return {
+                    //浏览器高度
+                    myScreenHeight: document.documentElement.clientHeight,
+                    //默认标签页
+                    activeName: 'main',
+                    //登录标志（默认false）
+                    isLogin: false,
+                    //用户登录信息
+                    userInfo: {},
+                    //编辑用户信息
+                    editInfo: {},
+                    //登录对话框可见性（默认false）
+                    loginDialogVisible: false,
+                    //收藏对话框可见性（默认false）
+                    collectionDialogVisible: false,
+                    //关注对话框可见性（默认false）
+                    attentionDialogVisible: false,
+                    //消息中心对话框可见性（默认false）
+                    messageDialogVisible: false,
+                    //阅读消息对话框可见性（默认false）
+                    readMessageDialogVisible: false,
+                    //参考书详情对话框可见性（默认false）
+                    bookDialogVisible: false,
+                    //查看更多对话框可见性（默认false）
+                    moreBookDialogVisible: false,
+                    //评论对话框可见性（默认false）
+                    evaluationDialogVisible: false,
+                    //登录表单
+                    loginRuleForm: {
+                        username: '',
+                        password: ''
+                    },
+                    //登录验证信息
+                    loginRules: {
+                        username: [{required: true, message: '请输入用户名', trigger: 'blur'}],
+                        password: [{required: true, message: '请输入密码', trigger: 'blur'}]
+                    },
+                    //轮播图片列表
+                    images: [{
+                        name: 'image1',
+                        url: 'item1.jpg'
+                    }, {
+                        name: 'image2',
+                        url: 'item2.jpg'
+                    }, {
+                        name: 'image3',
+                        url: 'item3.jpg'
+                    }, {
+                        name: 'image4',
+                        url: 'item4.jpg'
+                    }],
+                    //参考书列表
+                    recommendBooks: [],
+                    //浏览量榜单
+                    pageViewBookList: [],
+                    //关注数榜单
+                    attentionBookList: [],
+                    //评分榜单
+                    avgLevelBookList: [],
+                    //查看更多列表
+                    moreBooks: [],
+                    //收藏列表
+                    collections: [],
+                    //关注列表
+                    attentions: [],
+                    //消息是否已读参数
+                    isRead: 0,
+                    //消息列表
+                    messages: [],
+                    messageInfo: {
+                        title: '',
+                        content: ''
+                    },
+                    //参考书详情
+                    bookInfo: {
+                        id: 0,
+                        name: '',
+                        picture: '',
+                        introduction: '',
+                        pageView: 0,
+                        attention: 0,
+                        avgLevel: 0
+                    },
+                    //个人评论列表
+                    evaluationForSelf: [],
+                    //全部评论列表
+                    evaluations: [],
+                    //参考书详情中的是否已收藏
+                    isCollected: false,
+                    //评价信息
+                    evaluation: {
+                        bookId: 0,
+                        name: '',
+                        picture: '',
+                        introduction: '',
+                        level: 1,
+                        comment: ''
+                    },
+                    //专业列表（显示在下拉列表）
+                    majors: [],
+                    //课程列表（显示在下拉列表）
+                    courses: [],
+                    //查询参数
+                    searchParams: {
+                        //专业列表（查询参数）
+                        majors: [],
+                        //课程列表（查询参数）
+                        courses: [],
+                        //关键词
+                        keyword: ''
+                    },
+
+                    //查询结果显示类型（参考书、专业、课程）
+                    resultType: 0,
+                    /*模糊查询搜索结果*/
+                    //参考书查询结果
+                    searchResult_book: [],
+                    //专业查询结果
+                    searchResult_major: [],
+                    //课程查询结果
+                    searchResult_course: [],
+                };
+            },
+            mounted() {
+                //获取页面可视区域高度
+                this.getScreenHeight();
+                //获取用户登录信息
+                this.getUserInfo();
+                //标签页选择事件
+                this.handleChooseTab();
+            },
+            watch: {
+                myScreenHeight(val) {
+                    if (!this.timer) {
+                        this.myScreenHeight = val;
+                        this.timer = true;
+                        let that = this;
+                        setTimeout(function () {
+                            that.timer = false;
+                            //console.log(that.myScreenHeight);
+                        }, 400)
+                    }
+                },
+            },
+            methods: {
+                //获取页面可视区域高度
+                getScreenHeight() {
+                    const that = this;
+                    window.onresize = () => {
+                        return (() => {
+                            window.screenHeight = document.documentElement.clientHeight;
+                            that.myScreenHeight = window.screenHeight;
+                        })();
+                    };
+                },
+                //标签页选择事件
+                handleChooseTab() {
+                    if (this.activeName === 'main') {
+                        //获取主页数据
+                        this.getData();
+                    } else if (this.activeName === 'search') {
+                        //获取专业查询下拉列表
+                        this.getMajorSelection();
+                        //this.getCourseSelection(this.searchParams.majors);
+                    }
+                },
+                //获取参考书数据
+                getData() {
+                    //this.getRecommendBookList();
+                    this.getPageViewBookList();
+                    this.getAttentionBookList();
+                    this.getAvgLevelBookList();
+                },
+                //获取推荐参考书数据
+                getRecommendBookList() {
+                    this.recommendBooks = [];
+                    axios.post("book?action=getRecommendBookList", window.Qs.stringify({
+                        'majorId': this.userInfo.majorId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            this.recommendBooks = res.data.data;
+                            //console.log(this.books);
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取浏览量排名表
+                getPageViewBookList() {
+                    this.pageViewBookList = [];
+                    axios.post("book?action=orderByPageView").then(res => {
+                        if (res.data.code === 200) {
+                            this.pageViewBookList = res.data.data;
+                            //console.log(this.books);
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取关注排名表
+                getAttentionBookList() {
+                    this.attentionBookList = [];
+                    axios.post("book?action=orderByAttention").then(res => {
+                        if (res.data.code === 200) {
+                            this.attentionBookList = res.data.data;
+                            //console.log(this.books);
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取平均评分排名表
+                getAvgLevelBookList() {
+                    this.avgLevelBookList = [];
+                    axios.post("book?action=orderByAvgLevel").then(res => {
+                        if (res.data.code === 200) {
+                            this.avgLevelBookList = res.data.data;
+                            //console.log(this.books);
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取用户信息
+                getUserInfo() {
+                    this.userInfo = {};
+                    axios.post("index?action=getUserInfo").then(res => {
+                        if (res.data.code === 200) {
+                            this.isLogin = true;
+                            this.userInfo = res.data.data;
+                            //console.log(this.userInfo);
+                            this.editInfo = res.data.data;
+                            this.getRecommendBookList();
+                        } else if (res.data.code === 101002) {
+                            this.isLogin = false;
+                        } else {
+                            this.$message.error("未知错误");
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //登录表单提交
+                submitLoginForm(formName) {
+                    this.$refs[formName].validate((valid) => {
+                        if (valid) {
+                            this.login(this.loginRuleForm);
+                            //延时加载
+                            //this.loading();
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
+                    });
+                },
+                //登录
+                login(loginRuleForm) {
+                    axios.post("index?action=login", window.Qs.stringify({
+                        'username': loginRuleForm.username,
+                        'password': loginRuleForm.password
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.data.type === 1) {
+                            if (res.data.code === 200) {
+                                this.loginInfo = res.data.data;
+                                this.getUserInfo();
+                                this.handleCloseLoginDialog();
+                                //移除错误信息
+                                window.sessionStorage.removeItem("msg");
+                            } else if (res.data.code === 10103) {
+                                this.$message.error('用户名或密码错误');
+                                //设置错误信息
+                                window.sessionStorage.setItem("msg", res.data.msg);
+                            } else if (res.data.code === 9999) {
+                                this.$message.error('未知错误');
+                                window.sessionStorage.setItem("msg", res.data.msg);
+                            } else {
+                                this.$message.error("WTF......")
+                                window.sessionStorage.setItem("msg", res.data.msg);
+                            }
+                        } else {
+                            this.$message.error("该用户不存在");
+                            this.getUserInfo();
+                            this.handleCloseLoginDialog();
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //退出登录
+                logout() {
+                    axios.post("index?action=logout").then(res => {
+                        if (res.data.code === 200) {
+                            //this.$message("注销成功...");
+                        } else if (res.data.code === 9999) {
+                            this.$message("未知服务错误");
+                        } else {
+                            this.$message("WTF???");
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                    this.getUserInfo();
+                },
+
+                /*以下是对话框事件*/
+
+                //打开登录对话框
+                handleLogin() {
+                    this.loginDialogVisible = true;
+                },
+                //查看收藏操作
+                handleViewCollection() {
+                    if (this.isLogin === true) {
+                        this.viewCollection();
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleLogin();
+                    }
+                },
+                //添加收藏操作
+                handleAddCollection(bookId) {
+                    if (this.isLogin === true) {
+                        this.addCollection(bookId);
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleCloseBookDialog();
+                        this.handleLogin();
+                    }
+                },
+                //取消收藏操作
+                handleRemoveCollection(bookId) {
+                    if (this.isLogin === true) {
+                        this.removeCollection(bookId);
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleCloseBookDialog();
+                        this.handleLogin();
+                    }
+                },
+                //设置阅读提醒
+                handleSetNotice(name) {
+                    axios.post("message?action=setNotice", window.Qs.stringify({
+                        'bookName': name,
+                        'studentId': this.userInfo.id,
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            if (res.data.data) {
+                                this.$message({message: '设置阅读提醒成功', type: 'success'});
+                            }
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //查看关注操作
+                handleViewAttention() {
+                    if (this.isLogin === true) {
+                        this.viewAttention();
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleLogin();
+                    }
+                },
+                //添加关注操作
+                handleAddAttention(courseId) {
+                    if (this.isLogin === true) {
+                        this.addAttention(courseId);
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleCloseBookDialog();
+                        this.handleLogin();
+                    }
+                },
+                //取消关注操作
+                handleRemoveAttention(courseId) {
+                    if (this.isLogin === true) {
+                        this.removeAttention(courseId);
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleCloseBookDialog();
+                        this.handleLogin();
+                    }
+                },
+                //查看消息
+                handleViewMessage() {
+                    if (this.isLogin === true) {
+                        this.viewMessage();
+                    } else {
+                        //this.$message("请先登录");
+                        this.handleLogin();
+                    }
+                },
+                //查看消息详情并且设置为已读
+                handleReadMessageDialog(messageId) {
+                    this.readMessageDialogVisible = true;
+                    this.messageInfo = this.messages.filter(function (obj) {
+                        return obj.id === messageId;
+                    })
+                    //console.log(this.messageInfo);
+                    this.getRead(messageId);
+                },
+                //打开参考书详情对话框
+                handleGetView(bookId) {
+                    //this.bookInfo = {};
+                    //获取参考书信息
+                    this.getBookInfo(bookId);
+                },
+                //打开查看更多对话框
+                handleGetMore(list) {
+                    this.moreBooks = [];
+                    this.moreBooks = list;
+                    this.moreBookDialogVisible = true;
+                },
+                //打开评论对话框
+                handleEvaluate(row) {
+                    this.evaluation.bookId = row.id;
+                    this.evaluation.picture = row.picture;
+                    this.evaluation.name = row.name;
+                    this.evaluation.introduction = row.introduction;
+                    this.evaluationDialogVisible = true;
+                },
+                //上传评论
+                handleUploadEvaluation() {
+                    axios.post("evaluation?action=uploadEvaluation", window.Qs.stringify({
+                        'bookId': this.evaluation.bookId,
+                        'studentId': this.userInfo.id,
+                        'level': this.evaluation.level,
+                        'comment': this.evaluation.comment
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            if (res.data.data === true) {
+                                this.$message({message: '发表成功', type: 'success'});
+                                this.handleCloseEvaluationDialog();
+                            } else {
+                                this.$message({message: '发表失败', type: 'danger'});
+                            }
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //关闭登录对话框
+                handleCloseLoginDialog() {
+                    //关闭登录对话框
+                    this.loginDialogVisible = false;
+                    //清空登录输入
+                    this.loginRuleForm = {
+                        username: '',
+                        password: ''
+                    };
+                },
+                //关闭查看收藏对话框
+                handleCloseCollectionDialog() {
+                    this.collectionDialogVisible = false;
+                    this.getData();
+                },
+                //关闭查看关注对话框
+                handleCloseAttentionDialog() {
+                    this.attentionDialogVisible = false;
+                },
+                //关闭消息对话框
+                handleCloseMessageDialog() {
+                    this.messageDialogVisible = false;
+                },
+                //关闭查看消息对话框
+                handleCloseReadMessageDialog() {
+                    this.readMessageDialogVisible = false;
+                },
+                //关闭查看参考书详情对话框
+                handleCloseBookDialog() {
+                    this.bookDialogVisible = false;
+                    this.getData();
+                },
+                //关闭查看更多对话框
+                handleCloseGetMoreDialog() {
+                    this.moreBookDialogVisible = false;
+                },
+                //关闭评价对话框
+                handleCloseEvaluationDialog() {
+                    this.evaluationDialogVisible = false;
+                    this.evaluation.bookId = 0;
+                    this.evaluation.name = '';
+                    this.evaluation.picture = '';
+                    this.evaluation.introduction = '';
+                    this.evaluation.level = 1;
+                    this.evaluation.comment = '';
+                },
+                //查询参考书详情
+                getBookInfo(bookId) {
+                    this.bookInfo = {};
+                    axios.post("book?action=getView", window.Qs.stringify({
+                        'bookId': bookId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                            if (res.data.code === 200) {
+                                this.bookInfo = res.data.data;
+                                if (this.isLogin) {
+                                    this.judgeCollectedStatus(bookId);
+                                } else {
+                                    //获取评论（自己的和别人的分开）
+                                    this.getEvaluations(bookId);
+                                }
+                                //console.log(this.bookInfo);
+                                this.bookDialogVisible = true;
+                            } else if (res.data.code === 9999) {
+                                this.$message("未知服务错误");
+                            } else if (res.data.data === 10000) {
+                                this.$message("系统繁忙，请稍后再试");
+                            } else {
+                                this.$message("WTF???");
+                            }
+                        }
+                    ).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //查找评论
+                getEvaluations(bookId) {
+                    this.evaluationForSelf = [];
+                    this.evaluations = [];
+                    axios.post("evaluation?action=selectEvaluationByBookIdAndStudentId", window.Qs.stringify({
+                        'bookId': bookId,
+                        'studentId': this.userInfo.id
+                    }, {
+                        indices: false
+                    })).then(res => {
+                            if (res.data.code === 200) {
+                                this.evaluationForSelf = res.data.data[0];
+                                this.evaluations = res.data.data[1];
+                            }
+                        }
+                    ).catch(error => {
+                        console.log(error);
+                    })
+                },
+
+                /*收藏相关操作*/
+
+                //查看收藏
+                viewCollection() {
+                    axios.post("book?action=viewCollection", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        this.collections = res.data.data;
+                        this.collectionDialogVisible = true;
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+                //添加收藏
+                addCollection(bookId) {
+                    axios.post("book?action=addCollection", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'bookId': bookId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            this.isCollected = res.data.data;
+                            //this.viewCollection();
+                            //console.log(this.isCollected);
+                        }
+
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+                //取消收藏
+                removeCollection(bookId) {
+                    axios.post("book?action=removeCollection", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'bookId': bookId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            this.isCollected = !res.data.data;
+                            this.viewCollection();
+                            //console.log(this.isCollected);
+                        }
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+                //判断是否已收藏
+                judgeCollectedStatus(bookId) {
+                    axios.post("book?action=isCollected", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'bookId': bookId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            let result = res.data.data;
+                            this.isCollected = result;
+                            //获取评论（自己的和别人的分开）
+                            this.getEvaluations(bookId);
+                            //console.log(this.isCollected);
+                        }
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+
+                /*关注相关操作*/
+
+                //查看关注
+                viewAttention() {
+                    this.getAttention();
+                    this.attentionDialogVisible = true;
+                },
+                //获取关注列表
+                getAttention() {
+                    axios.post("course?action=viewAttention", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        this.attentions = res.data.data;
+                        //console.log(this.attentions);
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+                //添加关注
+                addAttention(courseId) {
+                    axios.post("course?action=addAttention", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'courseId': courseId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            if (res.data.data) {
+                                //this.$message({message: '关注成功', type: 'success'});
+                            }
+                        } else if(res.data.code === 10000) {
+                            this.$message({message: '您已经关注了哦~', type: 'info'});
+                        }
+                        this.getAttention();
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+                //取消关注
+                removeAttention(courseId) {
+                    axios.post("course?action=removeAttention", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'courseId': courseId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            if (res.data.data) {
+                                //this.$message({message: '取消关注成功', type: 'success'});
+                            }
+                        } else if(res.data.code === 10000) {
+                            this.$message({message: '您没有关注这门课哦~', type: 'info'});
+                        }
+                        this.getAttention();
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                },
+                //查看消息
+                viewMessage() {
+                    this.messages = [];
+                    axios.post("message?action=viewMessage", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'isRead': this.isRead
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            this.messages = res.data.data;
+                        }
+                        this.messageDialogVisible = true;
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取消息已读状态
+                getRead(messageId) {
+                    axios.post("message?action=getRead", window.Qs.stringify({
+                        'studentId': this.userInfo.id,
+                        'messageId': messageId
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            /*if(res.data.data) {
+                                this.$message({message: '操作成功', type: 'success'});
+                            } else {
+                                this.$message({message: '操作异常', type: 'danger'});
+                            }*/
+                            this.viewMessage();
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取专业下拉列表
+                getMajorSelection() {
+                    this.majors = [];
+                    axios.post("major?action=getMajors").then(res => {
+                        if (res.data.code === 200) {
+                            this.majors = res.data.data;
+                            this.getCourseSelection(this.searchParams.majors);
+                        }
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //获取课程下拉列表
+                getCourseSelection(majors) {
+                    //console.log(majors);
+                    if (majors !== []) {
+                        this.courses = [];
+                        axios.post("course?action=getCoursesByMajors", window.Qs.stringify({
+                            'majors': majors
+                        }, {
+                            indices: false
+                        })).then(res => {
+                            if (res.data.code === 200) {
+                                this.courses = res.data.data;
+                            }
+                        }).catch(error => {
+                            console.log(error);
+                        })
+                    }
+                },
+                //查询操作（模糊查询参考书、课程、专业）
+                doSearch(searchParams) {
+                    this.searchResult_book = [];
+                    this.searchResult_major = [];
+                    this.searchResult_course = [];
+                    axios.post("book?action=selectByMajorAndCourseAndKeyword", window.Qs.stringify({
+                        'majors': searchParams.majors,
+                        'courses': searchParams.courses,
+                        'keyword': searchParams.keyword
+                    }, {
+                        indices: false
+                    })).then(res => {
+                        if (res.data.code === 200) {
+                            this.searchResult_book = res.data.data[0];
+                            this.searchResult_major = res.data.data[1];
+                            this.searchResult_course = res.data.data[2];
+                            this.activeName = "search";
+                        }
+                        this.getAttention();
+                    }).catch(error => {
+                        console.log(error);
+                    })
+                },
+                //判定是否在关注中
+                isInAttention(courseId) {
+                    this.attentions.filter(function (obj) {
+                        return obj.id === courseId;
+                    })
+                }
+            }
+        }
+    ;
+    const app = Vue.createApp(App);
+    app.use(ElementPlus);
+    app.mount("#app");
+</script>
+</body>
+</html>
+

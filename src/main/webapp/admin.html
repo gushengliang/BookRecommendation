@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!--<link rel="stylesheet" href="css/index.css">-->
+    <!-- 引入组件库 -->
+    <script src="js/vue.js"></script>
+    <script src="js/axios.js"></script>
+    <script src="js/qs.js"></script>
+    <script src="js/element-index.js"></script>
+    <title>管理员管理界面</title>
+    <!--<script src="//unpkg.com/vue@next"></script>-->
+    <!--<script src="//unpkg.com/element-plus/lib/index.full.js"></script>-->
+    <link rel="stylesheet" type="text/css" href="css/admin.css">
+</head>
+<body>
+
+<div id="app">
+    <div class="common-layout">
+        <el-container>
+
+            <el-header>管理员界面</el-header>
+
+            <el-container>
+
+                <el-aside width="200px" height="800xp">
+                    <img src="images/read.png" alt="图片加载失败" width="150" height="150"><br>
+                    <span>姓名：{{admin.adminName}}</span><br>
+                    <span>编号：{{admin.adminId}}</span><br>
+                    <el-button type="primary" @click="changepage(2)">发送通知</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(3)">学生管理</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(4)">学校管理</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(10)">专业管理</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(11)">课程管理</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(7)">审核评论</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(8)">编辑违禁词</el-button>
+                    <br>
+                    <el-button type="primary" @click="changepage(9)">参考书管理</el-button>
+                    <br>
+                    <!--                        <el-button type="danger">注销登录</el-button>-->
+
+                </el-aside>
+
+                <el-main>
+                    <!--默认界面-->
+                    <div v-if="now_page==0">
+                        <img src="images/read.png" alt="图片加载失败" width="500" height="500">
+                    </div>
+
+                    <!--发送通知界面-->
+                    <div v-if="now_page==2">
+                        <h2>发送通知</h2>
+                        <div align="left">
+                            <span>标题</span><br>
+                            <el-input type="text" v-model="inform.title"></el-input>
+                            <br>
+                            <span>通知内容</span><br>
+                            <textarea rows="20" placeholder="请输入" cols="170" v-model="inform.message"></textarea>
+                        </div>
+                        <el-button type="primary" @click="sendiform()">发送</el-button>
+                        <el-button @click="changepage(0)">取消</el-button>
+                    </div>
+
+                    <!--学生管理页面-->
+                    <div v-if="now_page==3">
+                        <h2>学生信息管理</h2>
+                        <el-table
+                                :data="students"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+
+                                    prop="username"
+                                    label="学号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="姓名">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="school.name"
+                                    label="学校">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="major.name"
+                                    label="专业">
+                            </el-table-column>
+
+                            <el-table-column
+
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button @click="updateStudent(scope.row)" type="text" size="small">编辑</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button @click="creatStudent" type="primary">添加学生</el-button>
+                    </div>
+                    <!--                        学校信息管理-->
+                    <div v-if="now_page==4">
+                        <h2>学校信息管理</h2>
+                        <el-table
+                                :data="schools"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="学校编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="学校名称">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button @click="schoolDetails(scope.row.id)" type="text" size="small">查看详情
+                                    </el-button>
+                                    <el-button type="text" size="small" @click="renameSchool(scope.row)">重命名</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary" @click="addSchool">添加学校</el-button>
+                    </div>
+                    <!--                        学校专业管理-->
+                    <div v-if="now_page==5">
+                        <h2>学校详情管理</h2>
+                        <h4>{{now_school.name}}</h4>
+                        <el-table
+                                :data="school_major"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="专业编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="专业名称">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button type="text" size="small" @click="deleteMajorInSchool(scope.row.id)">删除
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary" @click="schoolAddMajor">添加专业</el-button>
+                    </div>
+                    <!--                        专业课程管理-->
+                    <div v-if="now_page==6">
+                        <h2>专业详情管理</h2>
+                        <h4>{{now_major.name}}</h4>
+                        <el-table
+                                :data="major_course"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="课程编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="课程名称">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button type="text" size="small">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary">添加课程</el-button>
+                    </div>
+
+                    <!--                        审核评论页面-->
+                    <div v-if="now_page==7">
+                        <h2>未审核评论</h2>
+                        <el-table
+                                :data="evaluations"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="student.name"
+                                    label="评论人">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="book.name"
+                                    label="书籍编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="comment"
+                                    label="评论内容">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button @click="examine(scope.row.id,1)" type="text" size="small">通过</el-button>
+                                    <el-button type="text" size="small" @click="examine(scope.row.id,2)" type="text">
+                                        标注违规
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                    <!--                        编辑违禁词页面-->
+                    <div v-if="now_page==8">
+                        <h2>违禁词管理</h2>
+                        <el-table
+                                :data="prohibitedWords"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="违禁词编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="content"
+                                    label="违禁词名称">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button @click="deleteWord(scope.row.id)" type="text" size="small">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary" @click="addWord">添加违禁词</el-button>
+
+                    </div>
+                    <!--                        书籍管理页面-->
+                    <div v-if="now_page==9">
+                        <h2>参考书管理</h2>
+                        <el-table
+                                :data="books"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="书籍编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="书名">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="introduction"
+                                    label="简介">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button @click="renameBook(scope.row)" type="text" size="small">编辑</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary" @click="changepage(1)">书籍审核</el-button>
+                    </div>
+                    <!--                    书籍审核页面-->
+                    <div v-if="now_page==1">
+                        <h2>未审核书籍</h2>
+                        <el-table
+                                :data="unexaminedBooks"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="书籍编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="书名">
+                            </el-table-column>
+
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button @click="examine(scope.row.id,3)" type="text" size="small">通过</el-button>
+                                    <el-button type="text" size="small" @click="examine(scope.row.id,4)">驳回</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                    <!--                    专业管理页面-->
+                    <div v-if="now_page==10">
+                        <h2>基础专业管理</h2>
+                        <el-table
+                                :data="majors"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="专业编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="专业名称">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button type="text" size="small" @click="renameMajor(scope.row)">重命名</el-button>
+                                    <el-button @click="majorDetails(scope.row.id)" type="text" size="small">查看详情
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary" @click="addMajor">添加专业</el-button>
+                    </div>
+                    <!--                    课程管理页面-->
+                    <div v-if="now_page==11">
+                        <h2>基础课程管理</h2>
+                        <el-table
+                                :data="courses"
+                                border
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="id"
+                                    label="课程编号">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="name"
+                                    label="课程名称">
+                            </el-table-column>
+                            <el-table-column
+                                    fixed="right"
+                                    label="操作">
+                                <template #default="scope">
+                                    <el-button type="text" size="small" @click="renameCourse(scope.row)">重命名</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <br>
+                        <el-button type="primary" @click="addCourse">添加课程</el-button>
+                    </div>
+
+                </el-main>
+
+            </el-container>
+        </el-container>
+        <!--学生信息编辑页面-->
+        <el-dialog title="学生信息编辑页面" v-model="studentMessage">
+            <span>请填写学生信息</span><br><br>
+            <span>学号: </span>
+            <el-input type="text" v-model="now_student.username" style="width: 40%"></el-input>
+            <br><br>
+            <span>姓名: </span>
+            <el-input type="text" v-model="now_student.name" style="width: 40%"></el-input>
+            <br><br>
+            <span>学校: </span>
+            <el-select @change="selectChanged" v-model="now_student.school" placeholder="请选择">
+                <el-option
+                        v-for="item in schools"
+                        :key="item.id"
+                        :label="item.name"
+                        :value="item.id">
+                </el-option>
+            </el-select>
+            <br><br>
+            <span>专业: </span>
+            <el-select v-model="now_student.major" placeholder="请选择">
+                <el-option
+                        v-for="item in now_major"
+                        :key="item.id"
+                        :label="item.name"
+                        :value="item.id">
+                </el-option>
+            </el-select>
+            <br>
+            <div style="text-align:center">
+                <el-button @click="studentMessage = false" style="margin-right:20px ">取 消</el-button>
+                <el-button type="primary" @click="goStudent">确 定</el-button>
+            </div>
+            </span>
+        </el-dialog>
+        <!--学校信息编辑页面-->
+        <el-dialog title="学校信息编辑页面" v-model="schoolMessage">
+            <span>请填写学校信息</span><br><br>
+
+            <span>学校名 :</span>
+            <el-input type="text" v-model="editSchool.name" style="width: 40%"></el-input>
+            <br><br>
+            <el-button @click="schoolMessage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goSchool">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!--专业信息编辑页面-->
+        <el-dialog title="专业信息编辑页面" v-model="majorMessage">
+            <span>请填写专业信息</span><br><br>
+
+            <span>专业名 :</span>
+            <el-input type="text" v-model="editMajor.name" style="width: 40%"></el-input>
+            <br><br>
+            <el-button @click="majorMessage = false" style="margin-right:20px">取 消</el-button>
+            <el-button type="primary" @click="goMajor">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!--课程信息编辑页面-->
+        <el-dialog title="课程信息编辑页面" v-model="courseMessage">
+            <span>请填写课程信息</span><br><br>
+
+            <span>课程名 :</span>
+            <el-input type="text" v-model="editCourse.name" style="width: 40%"></el-input>
+            <br><br>
+            <el-button @click="courseMessage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goCourse">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!--书籍信息编辑页面-->
+        <el-dialog title="书籍信息编辑页面" v-model="bookMessage">
+            <span>请填写书籍信息</span><br><br>
+            <span>书名 :</span>
+            <el-input type="text" v-model="editBook.name" style="width: 40%"></el-input>
+            <br><br>
+            <span>简介 :</span>
+            <el-input type="text" v-model="editBook.introduction" style="width: 80%"></el-input>
+            <br><br>
+            <el-button @click="bookMessage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goBook">确 定</el-button>
+            </span>
+        </el-dialog>
+
+        <!--添加违禁词页面-->
+        <el-dialog title="添加违禁词页面" v-model="wordMessage">
+            <span>请填写违禁词</span><br><br>
+
+            <el-input type="text" v-model="ProhibitedWord.word" style="width: 40%"></el-input>
+            <br><br>
+            <el-button @click="wordMessage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goAddWord">确 定</el-button>
+            </span>
+        </el-dialog>
+
+        <!--学校添加专业页面-->
+        <el-dialog title="学校添加专业页面" v-model="school_addMajorMessage">
+            <span>请选择专业</span><br><br>
+
+            <el-select v-model="school_addMajor.major" placeholder="请选择">
+                <el-option
+                        v-for="item in majors"
+                        :key="item.id"
+                        :label="item.name"
+                        :value="item.id">
+                </el-option>
+            </el-select>
+            <el-button @click="school_addMajorMessage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goAddMajor">确 定</el-button>
+            </span>
+        </el-dialog>
+
+        <!--专业添加课程页面-->
+        <el-dialog title="专业添加课程页面" v-model="major_addCourseMessage">
+            <span>请选择课程</span><br><br>
+
+            <el-select v-model="major_addCourse.course" placeholder="请选择">
+                <el-option
+                        v-for="item in courses"
+                        :key="item.id"
+                        :label="item.name"
+                        :value="item.id">
+                </el-option>
+            </el-select>
+            <el-button @click="major_addCourseMessage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goAddCourse">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!--二次确认页面-->
+        <el-dialog title="提示" v-model="enquirePage">
+            <span>{{Prompt_information}}</span><br>
+            <el-button @click="enquirePage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="goEnquire">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!--广播发送结果页面-->
+        <el-dialog title="提示" v-model="informMessage.resultPage">
+            <span>{{informMessage.result}}</span><br>
+            <el-button @click="informMessage.resultPage = false" style="margin-right:20px ">取 消</el-button>
+            <el-button type="primary" @click="informMessage.resultPage = false">确 定</el-button>
+            </span>
+        </el-dialog>
+    </div>
+</div>
+
+<script>
+    var Main = {
+
+        data() {
+            return {
+                now_page: 0,//标注当前页面
+
+                deleteNumber: 0,//删除操作执行操作号
+                enquirePage: false,//二次确认页面
+                Prompt_information: '',//二次提示内容
+                enquireKey: 0,//确认后的执行码
+
+                inform: {//广播
+                    title: '',//通知标题
+                    message: '',//通知内容
+                },
+
+
+                admin: {//管理员基本信息
+                    adminName: '',
+                    adminId: ''
+                },
+
+                ProhibitedWord: {//添加违禁词
+                    id: '',
+                    word: '',
+                },
+                wordMessage: false,//添加违禁词页面开关
+
+                students: [],//学生信息
+
+                schools: [],//学校信息
+                now_school: '',//当前浏览学校
+                school_major: [],//当前浏览学校内专业信息
+
+                majors: [],//专业信息
+                now_major: '',//当前浏览专业
+                major_course: [],//当前浏览专业内的课程信息
+
+                courses: [],//所有课程信息
+
+                evaluations: [],//未审核评价
+
+                prohibitedWords: [],//违禁词
+
+                books: [],//全部书籍
+                unexaminedBooks: [],//未审核书籍
+
+                studentMessage: false,//学生信息编辑页面开启字段
+                student_key: 0,//学生操作码
+                now_student: {//当前编辑的学生信息
+                    id: '',
+                    username: '',
+                    name: '',
+                    school: '',
+                    major: '',
+                },
+
+                schoolMessage: false,//学校信息编辑页面
+                school_key: 0,//学校操作码
+                editSchool: {//当前编辑的学校信息
+                    id: '',
+                    name: '',
+                },
+
+                majorMessage: false,//专业信息编辑页面
+                major_key: 0,//专业操作码
+                editMajor: {//当前编辑的专业信息
+                    id: '',
+                    name: '',
+                },
+
+                courseMessage: false,//课程信息编辑页面
+                course_key: 0,//课程操作码
+                editCourse: {//当前编辑的课程信息
+                    id: '',
+                    name: '',
+                },
+
+                bookMessage: false,//书籍信息编辑页面
+                book_key: 0,//课程操作码
+                editBook: {//当前编辑的课程信息
+                    id: '',
+                    name: '',
+                    introduction: '',
+                },
+
+                school_addMajorMessage: false,//学校添加专业页面
+                school_addMajor: {
+                    school: '',
+                    major: ''
+                },
+
+                major_addCourseMessage: false,//学校添加专业页面
+                major_addCourse: {
+                    course: '',
+                    major: ''
+                },
+                examineMessage: {
+                    id: '',
+                    key: '',
+                },
+
+                informMessage: {
+                    result: '',
+                    resultPage: false,
+                }
+            }
+        },
+        mounted() {
+            this.getData(); //初始化数据
+        },
+
+        methods: {
+            //编辑书籍信息
+            renameBook(item) {
+                this.editBook.id = item.id;
+                this.editBook.introduction = item.introduction;
+                this.editBook.name = item.name;
+                this.bookMessage = true
+            },
+
+            //发送更新书籍信息
+            goBook() {
+                axios.get("book?action=updateBook", {params: this.editBook})
+                    .then((res) => {
+                        console.log(res);
+                    })
+                setTimeout(() => {
+                    this.getBooks();
+                }, 500);
+                this.bookMessage = false;
+            },
+            //添加违禁词
+            addWord() {
+                this.word = null;
+                this.wordMessage = true;
+            },
+            //发送添加请求
+            goAddWord() {
+                axios.get("prohibitedWord?action=creatProhibitedWord", {params: this.ProhibitedWord})
+                    .then((res) => {
+                        console.log(res);
+                    })
+                setTimeout(() => {
+                    this.getProhibitedWords();
+                }, 500);
+                this.wordMessage = false;
+            },
+            //删除违禁词
+            deleteWord(id) {
+                this.Prompt_information = "是否确认删除";
+                this.deleteNumber = 3;
+                this.enquireKey = 1
+                this.ProhibitedWord.id = id;
+                this.enquirePage = true;
+            },
+            //删除学校中的专业
+            deleteMajorInSchool(id) {
+                this.Prompt_information = "是否确认删除";
+                this.school_addMajor.school = this.now_school.id
+                this.school_addMajor.major = id;
+                this.enquireKey = 1
+                this.deleteNumber = 1;
+                this.enquirePage = true;
+            },
+            //删除专业中的课程
+            deleteCourseInMajor(id) {
+                this.Prompt_information = "是否确认删除";
+                this.major_addCourse.major = this.now_major.id
+                this.major_addCourse.course = id;
+                this.enquireKey = 1
+                this.deleteNumber = 2;
+                this.enquirePage = true;
+            },
+            //向学校中添加专业
+            schoolAddMajor() {
+                this.school_addMajor.school = this.now_school.id
+                this.school_addMajor.major = null;
+                this.getMajors();
+                this.school_addMajorMessage = true;
+
+            },
+            goAddMajor() {
+                axios.get("school?action=addMajor", {params: this.school_addMajor})
+                    .then((res) => {
+                        console.log(res);
+                    })
+                setTimeout(() => {
+                    this.getSchools();
+                    this.schoolDetails(this.now_school.id);
+                }, 500);
+            },
+            //向专业中添加课程
+            schoolAddMajor() {
+                this.major_addCourse.major = this.now_major.id;
+                this.major_addCourse.course = null;
+                this.getCourses();
+                this.major_addCourseMessage = true;
+            },
+            goAddCourse() {
+                axios.get("major?action=addCourse", {params: this.major_addCourse})
+                    .then((res) => {
+                        console.log(res);
+                    })
+                setTimeout(() => {
+                    this.getMajors();
+                    this.majorDetails(this.now_major.id);
+                }, 500);
+            },
+
+            //编辑学校信息
+            renameSchool(itme) {
+                this.editSchool.id = itme.id;
+                this.editSchool.name = itme.name;
+                this.schoolMessage = true;
+                this.school_key = 2;
+            },
+            //创建学校信息
+            addSchool() {
+                this.editSchool.id = null;
+                this.editSchool.name = null;
+                this.school_key = 1;
+                this.schoolMessage = true;
+            },
+            //发送有关学校操作的请求
+            goSchool() {
+                if (this.school_key == 1) {
+                    axios.get("school?action=creatSchool", {params: this.editSchool})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                } else if (this.school_key == 2) {
+                    axios.get("school?action=updateSchool", {params: this.editSchool})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                }
+                setTimeout(() => {
+                    this.getSchools();
+                }, 500);
+                this.schoolMessage = false;
+            },
+            //编辑专业信息
+            renameMajor(itme) {
+                this.editMajor.id = itme.id;
+                this.editMajor.name = itme.name;
+                this.majorMessage = true;
+                this.major_key = 2;
+            },
+            //创建专业信息
+            addMajor() {
+                this.editMajor.id = null;
+                this.editMajor.name = null;
+                this.major_key = 1;
+                this.majorMessage = true;
+            },
+            //发送有关专业操作的请求
+            goMajor() {
+                if (this.major_key == 1) {
+                    axios.get("major?action=creatMajor", {params: this.editMajor})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                } else if (this.major_key == 2) {
+                    axios.get("major?action=updateMajor", {params: this.editMajor})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                }
+                setTimeout(() => {
+                    this.getMajors();
+                }, 500);
+                this.majorMessage = false;
+            },
+
+            //编辑课程信息
+            renameCourse(itme) {
+                this.editCourse.id = itme.id;
+                this.editCourse.name = itme.name;
+                this.courseMessage = true;
+                this.course_key = 2;
+            },
+            //创建课程信息
+            addCourse() {
+                this.editCourse.id = null;
+                this.editCourse.name = null;
+                this.course_key = 1;
+                this.courseMessage = true;
+            },
+            //发送有关课程操作的请求
+            goCourse() {
+                if (this.course_key == 1) {
+                    axios.get("course?action=creatCourse", {params: this.editCourse})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                } else if (this.course_key == 2) {
+                    axios.get("course?action=updateCourse", {params: this.editCourse})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                }
+                setTimeout(() => {
+                    this.getCourses();
+                }, 500);
+                this.courseMessage = false;
+            },
+            //发送有关学生操作的请求
+            goStudent() {
+                if (this.student_key == 1) {
+                    axios.get("student?action=creatStudent", {params: this.now_student})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                } else if (this.student_key == 2) {
+                    axios.get("student?action=updateStudent", {params: this.now_student})
+                        .then((res) => {
+                            console.log(res);
+                        })
+                }
+                setTimeout(() => {
+                    this.getStudents();
+                }, 500);
+                this.studentMessage = false;
+            },
+            //创建学生信息
+            creatStudent() {
+                this.now_student.id = null;
+                this.now_student.name = null;
+                this.now_student.school = null;
+                this.now_student.major = null;
+                this.now_student.username = null;
+                this.getSchools();
+                setTimeout(() => {
+                    this.studentMessage = true;
+                    this.student_key = 1;
+                }, 500);
+
+            },
+            //更改学生信息
+            updateStudent(item) {
+                this.now_student.id = item.id;
+                this.now_student.name = item.name;
+                this.now_student.school = item.school.id;
+                this.now_student.major = item.major.id;
+                this.now_student.username = item.username;
+                this.getSchools();
+                setTimeout(() => {
+                    for (var i = 0; this.schools[i] != null; i++) {
+                        if (this.schools[i].id == this.now_student.school) {
+                            this.now_major = this.schools[i].majorList;
+                        }
+                    }
+                    this.studentMessage = true;
+                    this.student_key = 2;
+                }, 500);
+
+            },
+            //编辑学生信息学校专业联级选择器
+            selectChanged(value) {
+                for (var i = 0; this.schools[i] != null; i++) {
+                    if (this.schools[i].id == value) {
+                        this.now_major = this.schools[i].majorList;
+                    }
+                }
+            },
+            //获得管理员信息
+            getData() {
+                this.admin = {};
+                this.admin.adminId = sessionStorage.getItem("adminId");
+                this.admin.adminId = "10000001"
+                axios.get("admin?action=getadmin", {params: this.admin})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.admin.adminId = result.username;
+                        this.admin.adminName = result.name;
+                    })
+
+            },
+            //获取全部学生信息
+            getStudents() {
+                axios.get("student?action=getAllStudents", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.students = result;
+                    })
+            },
+            //获取全部学校信息
+            getSchools() {
+                axios.get("school?action=getAllSchools", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.schools = result;
+                    })
+            },
+            //查看学校详情
+            schoolDetails(id) {
+                for (var i = 0; this.schools[i] != null; i++) {
+                    if (this.schools[i].id == id) {
+                        this.school_major = this.schools[i].majorList;
+                        this.now_school = this.schools[i]
+                        break;
+                    }
+                }
+                this.now_page = 5;
+
+            },
+            //获得专业信息
+            getMajors() {
+                axios.get("major?action=getAllMajors", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.majors = result;
+                    })
+            },
+            //查看专业详情
+            majorDetails(id) {
+                for (var i = 0; this.majors[i] != null; i++) {
+                    if (this.majors[i].id == id) {
+                        this.major_course = this.majors[i].courseList;
+                        this.now_major = this.majors[i]
+                        break;
+                    }
+                }
+                this.now_page = 6;
+            },
+            //获取课程信息
+            getCourses() {
+                axios.get("course?action=getAllCourses", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.courses = result;
+                    })
+            },
+            //获得未审核的评价
+            getEvaluations() {
+                axios.get("evaluation?action=getUnCheckedEvaluation", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.evaluations = result;
+                    })
+            },
+            //获得全部违禁词
+            getProhibitedWords() {
+                axios.get("prohibitedWord?action=getAllProhibitedWords", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.prohibitedWords = result;
+                    })
+            },
+            //获取全部书籍
+            getBooks() {
+                axios.get("book?action=getAllBooks", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.books = result;
+                    })
+            },
+            //获取未审核过的书籍
+            getUnexaminedBooks() {
+                axios.get("unexaminedBook?action=getAllUnexaminedBooks", {params: ''})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        this.unexaminedBooks = result;
+                    })
+            },
+            //评论，书籍审核
+            examine(id, key) {
+                this.examineMessage.id = id;
+                this.examineMessage.key = key;
+                this.Prompt_information = "是否确认执行该操作";
+                this.enquireKey = 2;
+                this.enquirePage = true;
+            },
+            goEnquire() {
+                switch (this.enquireKey) {
+                    case 1:
+                        this.goDelete();
+                        break
+                    case 2:
+                        this.goExamine()
+
+                }
+                this.enquirePage = false;
+            },
+            //发送审核请求
+            goExamine() {
+                switch (this.examineMessage.key) {
+                    case 1:
+                        axios.get("evaluation?action=approvedEvaluation", {params: this.examineMessage})
+                            .then((res) => {
+                                console.log(res);
+                            })
+                        setTimeout(() => {
+                            this.getEvaluations()
+                        }, 500);
+                        break
+                    case 2:
+                        axios.get("evaluation?action=tagEvaluation", {params: this.examineMessage})
+                            .then((res) => {
+                                console.log(res);
+                            })
+                        setTimeout(() => {
+                            this.getEvaluations()
+                        }, 500);
+                        break
+                    case 3:
+                        axios.get("book?action=approvedBooks", {params: this.examineMessage})
+                            .then((res) => {
+                                console.log(res);
+                            })
+                        setTimeout(() => {
+                            this.getUnexaminedBooks();
+                        }, 500);
+                        break
+                    case 4:
+                        axios.get("book?action=rejectBooks", {params: this.examineMessage})
+                            .then((res) => {
+                                console.log(res);
+                            })
+                        setTimeout(() => {
+                            this.getUnexaminedBooks();
+                        }, 500);
+                        break
+
+                }
+            },
+
+            //发送删除操作请求
+            goDelete() {
+                switch (this.deleteNumber) {
+                    case 1:
+                        axios.get("school?action=deleteMajor", {params: this.school_addMajor})
+                            .then((res) => {
+                                console.log(res);
+                                let result = res.data.data;
+                            })
+                        setTimeout(() => {
+                            this.getSchools();
+                            this.schoolDetails(this.now_school.id);
+                        }, 500);
+                        break
+                    case 2:
+                        axios.get("major?action=deleteCourse", {params: this.major_addCourse})
+                            .then((res) => {
+                                console.log(res);
+                            })
+                        setTimeout(() => {
+                            this.getMajors();
+                            this.majorDetails(this.now_major.id);
+                        }, 500);
+                        break
+                    case 3:
+                        axios.get("prohibitedWord?action=deleteProhibitedWord", {params: this.ProhibitedWord})
+                            .then((res) => {
+                                console.log(res);
+                            })
+                        setTimeout(() => {
+                            this.getProhibitedWords();
+                        }, 500);
+                }
+            },
+
+            //更改页面
+            changepage(key) {
+                switch (key) {
+                    case 1:
+                        this.getUnexaminedBooks();
+                        break
+                    case 3:
+                        this.getStudents();
+                        break
+                    case 4:
+                        this.getSchools();
+                        break
+                    case 7:
+                        this.getEvaluations();
+                        break
+                    case 8:
+                        this.getProhibitedWords();
+                        break
+                    case 9:
+                        this.getBooks();
+                        break
+                    case 10:
+                        this.getMajors();
+                        break
+                    case 11:
+                        this.getCourses();
+                        break
+
+                }
+                this.now_page = key;
+            },
+            //发送通知信息
+            sendiform() {
+                axios.get("message?action=sendRadio", {params: this.inform})
+                    .then((res) => {
+                        console.log(res);
+                        let result = res.data.data;
+                        if (result) {
+                            this.informMessage.result = "成功！"
+                            this.informMessage.resultPage = true
+                        } else {
+                            this.informMessage.result = "失败！"
+                            this.informMessage.resultPage = true
+                        }
+                    })
+            },
+        }
+    };
+
+    const app = Vue.createApp(Main);
+    app.use(ElementPlus);
+    app.mount("#app")
+</script>
+</body>
+</html>

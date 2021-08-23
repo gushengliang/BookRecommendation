@@ -1,0 +1,254 @@
+/*@font-face {
+    font-family: "PingFang SC";
+}
+* {
+    font-family: "PingFang SC",sans-serif;
+}*/
+
+hr {
+    background-color: #409EFF;
+    border: 1px #409EFF solid;
+}
+
+body {
+    overflow-y: hidden;
+}
+
+#app {
+    height: 100%;
+    width: 100%;
+}
+
+.scrollbar {
+    /*border: 2px red solid;*/
+    /*height: 100%;*/
+    /*width: 100%;*/
+}
+
+#page {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+}
+
+#mainContainer {
+    position: absolute;
+    width: 1000px;
+}
+
+
+#info-panel {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.el-header {
+    /*background-color: #2f8be2;*/
+    /*color: #797979;*/
+    padding: 0 0;
+}
+
+.main-page {
+    float: left;
+}
+
+.user {
+    float: right;
+}
+
+.title-box {
+    display: inline;
+}
+
+.title {
+    margin-top: 20px;
+    float: left;
+    width: 24%;
+}
+
+.input-with-search {
+    margin-top: 20px;
+    width: 40%;
+}
+
+.collection-and-attention {
+    margin-top: 20px;
+    float: right;
+}
+
+.el-main {
+    /*background-color: #f6f6f6;*/
+    color: #333;
+    height: 600px;
+
+}
+
+.el-input el-input--suffix input-with-search {
+    /*margin-left: 30px;*/
+    width: 40px;
+}
+
+/*浏览量*/
+.view {
+    width: 100%;
+    margin-top: 27px;
+}
+
+.titles {
+    font-size: 19px;
+    font-weight: 400;
+}
+
+.content {
+    margin-top: 20px;
+    width: 100%;
+    height: auto;
+    font: inherit;
+    border: 1px solid #ebe6e1;
+    display: inline-block;
+}
+
+.book {
+    float: left;
+    padding: 20px;
+    list-style: none;
+    width: 293px;
+    /*border-right: 1px solid #ebe6e1;*/
+    display: block;
+}
+
+.book-image {
+    height: 160px;
+    width: 120px;
+    float: left;
+    margin-right: 30px;
+}
+
+.book-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 0;
+    /*line-height: 10px;*/
+}
+
+.introduction {
+    max-height: 66px;
+    letter-spacing: 1px;
+    overflow: hidden;
+    display: -webkit-box;
+    /*-webkit-line-clamp: 3;*/
+    color: #888;
+    font-size: 10px;
+}
+
+.btn-collect {
+    position: absolute;
+    bottom: 10px;
+}
+
+.book-item {
+    position: relative;
+    min-height: 160px;
+    border-radius: 3px;
+    padding: 10px 10px 10px 10px;
+    clear: both;
+}
+
+/*.book-item:hover {
+    background-color: #99a9bf;
+}*/
+
+.book-name:hover, .book-image:hover {
+    cursor: pointer;
+    /*color: #d3dce6;*/
+    color: #99a9bf;
+}
+
+.book-view {
+    position: relative;
+    min-height: 160px;
+    padding: 10px 10px 10px 10px;
+    clear: both;
+}
+
+.book-view-image {
+    height: 160px;
+    width: 114px;
+    float: left;
+    margin-right: 30px;
+}
+
+.book-view-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 10px;
+}
+
+/*li {*/
+/*    float: left;*/
+/*    padding: 20px;*/
+/*    list-style: none;*/
+/*    width: 285px;*/
+/*    border-right: 1px solid #ebe6e1;*/
+/*}*/
+
+.footer {
+    /*background-color: #fafafa;*/
+}
+
+/*走马灯*/
+.classification-carousel {
+    display: inline;
+    margin: 0;
+}
+
+.classification {
+    float: left;
+    width: 20%;
+}
+
+.carousel {
+    float: left;
+    width: 100%;
+}
+
+
+.el-carousel-item h1 {
+    color: #475669;
+    font-size: 20px;
+    opacity: 0.75;
+    line-height: 150px;
+    margin: 0;
+}
+
+.el-carousel-item:nth-child(2n) {
+    background-color: #99a9bf;
+}
+
+.el-carousel-item:nth-child(2n+1) {
+    background-color: #d3dce6;
+}
+
+.el-table__fixed-right{
+    height: 100% !important;
+}
+
+label {
+    /*font-size: small;*/
+}
+
+.text-center {
+    text-align: center;
+    line-height: 57px;
+    color: rgb(121, 121, 121);
+}
+
+.el-input, .el-select {
+    margin-right: 1%;
+}
+
+.el-pagination {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
